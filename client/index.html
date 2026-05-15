@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阿瓦隆線上</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="logo">⚔ 阿瓦隆</h1>
+    <p class="subtitle">線上多人版</p>
+
+    <div class="card" id="lobby-form">
+      <div class="form-group">
+        <label for="player-name">你的名字</label>
+        <input type="text" id="player-name" placeholder="輸入名字（最多 20 字）" maxlength="20" autocomplete="off">
+      </div>
+
+      <hr>
+
+      <button class="btn btn-primary" id="create-btn">建立房間</button>
+
+      <hr>
+
+      <div class="form-group">
+        <label for="room-code">房間碼</label>
+        <input type="text" id="room-code" placeholder="輸入 4 字元房間碼" maxlength="4" autocomplete="off" style="text-transform:uppercase">
+      </div>
+      <button class="btn btn-secondary" id="join-btn">加入房間</button>
+    </div>
+
+    <div id="status-msg" class="status-msg" style="display:none"></div>
+  </div>
+
+  <script>
+    const WS_URL = `ws://${location.host}`;
+    let ws;
+
+    function showStatus(msg, isError) {
+      const el = document.getElementById('status-msg');
+      el.textContent = msg;
+      el.className = 'status-msg ' + (isError ? 'error' : 'info');
+      el.style.display = 'block';
+    }
+
+    function connect(onOpen) {
+      ws = new WebSocket(WS_URL);
+      ws.onopen = onOpen;
+      ws.onmessage = e => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'ROOM_JOINED') {
+          sessionStorage.setItem('playerId', msg.playerId);
+          sessionStorage.setItem('roomCode', msg.roomCode);
+          sessionStorage.setItem('isHost', msg.isHost ? '1' : '0');
+          // Transfer WS to game page via BroadcastChannel
+          const bc = new BroadcastChannel('avalon');
+          bc.postMessage({ type: 'ws_ready' });
+          bc.close();
+          window.location.href = 'game.html';
+        } else if (msg.type === 'ERROR') {
+          showStatus(errorMsg(msg.code), true);
+          ws.close();
+        }
+      };
+      ws.onerror = () => showStatus('連線失敗，請重試', true);
+    }
+
+    function errorMsg(code) {
+      const map = {
+        ROOM_NOT_FOUND: '找不到該房間',
+        GAME_ALREADY_STARTED: '遊戲已開始，無法加入',
+        ROOM_FULL: '房間已滿（上限 10 人）',
+        MISSING_NAME: '請輸入名字',
+      };
+      return map[code] || `錯誤：${code}`;
+    }
+
+    document.getElementById('create-btn').addEventListener('click', () => {
+      const name = document.getElementById('player-name').value.trim();
+      if (!name) { showStatus('請輸入名字', true); return; }
+      connect(() => ws.send(JSON.stringify({ type: 'CREATE_ROOM', playerName: name })));
+    });
+
+    document.getElementById('join-btn').addEventListener('click', () => {
+      const name = document.getElementById('player-name').value.trim();
+      const code = document.getElementById('room-code').value.trim().toUpperCase();
+      if (!name) { showStatus('請輸入名字', true); return; }
+      if (code.length !== 4) { showStatus('請輸入 4 字元房間碼', true); return; }
+      connect(() => ws.send(JSON.stringify({ type: 'JOIN_ROOM', playerName: name, roomCode: code })));
+    });
+
+    document.getElementById('player-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('create-btn').click();
+    });
+  </script>
+</body>
+</html>

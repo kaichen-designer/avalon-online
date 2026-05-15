@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阿瓦隆 — 遊戲中</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container game-container">
+    <!-- Header: room code + round info -->
+    <header class="game-header">
+      <div class="room-info">
+        <span id="room-code-display">房間：----</span>
+        <button id="copy-code-btn" class="btn-copy" title="複製房間碼">複製</button>
+        <span id="round-display"></span>
+      </div>
+      <div class="score-display">
+        <span class="good-score" id="good-score">好人 ●●●</span>
+        <span class="evil-score" id="evil-score">壞人 ○○○</span>
+      </div>
+    </header>
+
+    <!-- Player list -->
+    <section id="players-section" class="section">
+      <h2>玩家</h2>
+      <div id="players-list" class="players-list"></div>
+    </section>
+
+    <!-- Role reveal -->
+    <section id="role-section" class="section" style="display:none">
+      <div class="role-card" id="role-card">
+        <div id="role-name" class="role-name"></div>
+        <div id="role-desc" class="role-desc"></div>
+        <div id="role-known" class="role-known"></div>
+      </div>
+      <button class="btn btn-primary" id="acknowledge-btn">我已知道我的角色</button>
+    </section>
+
+    <!-- Vote track -->
+    <div id="vote-track" class="vote-track" style="display:none">
+      連續否決：<span id="vote-track-count">0</span>/5
+    </div>
+
+    <!-- Game phase area -->
+    <section id="phase-section" class="section">
+      <div id="phase-content"></div>
+    </section>
+
+    <!-- Notifications -->
+    <div id="notification" class="notification" style="display:none"></div>
+  </div>
+
+  <script>
+    // Show room code immediately from sessionStorage without waiting for server
+    const _rc = sessionStorage.getItem('roomCode');
+    if (_rc) document.getElementById('room-code-display').textContent = `房間：${_rc}`;
+
+    document.getElementById('copy-code-btn').addEventListener('click', () => {
+      const code = sessionStorage.getItem('roomCode');
+      if (!code) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(() => {
+          if (window.showNotification) showNotification('已複製房間碼 ' + code);
+        });
+      } else {
+        // Fallback for older mobile browsers
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (window.showNotification) showNotification('已複製房間碼 ' + code);
+      }
+    });
+  </script>
+  <script src="js/ui.js"></script>
+  <script src="js/client.js"></script>
+</body>
+</html>

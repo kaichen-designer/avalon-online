@@ -1,0 +1,5 @@
+.spectra/
+openspec/.vector-search.db*
+node_modules/
+.DS_Store
+Thumbs.db
