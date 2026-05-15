@@ -34,6 +34,24 @@
   </div>
 
   <script>
+    // Detect in-app browsers (LINE, Instagram, Facebook) that block WebSocket
+    (function() {
+      const ua = navigator.userAgent || '';
+      const isInApp = /Line\//i.test(ua) || /FBAN|FBAV/i.test(ua) || /Instagram/i.test(ua);
+      if (isInApp) {
+        document.body.innerHTML = `
+          <div class="container" style="text-align:center;padding-top:4rem">
+            <h1 class="logo">⚔ 阿瓦隆</h1>
+            <div class="card" style="margin-top:2rem">
+              <p style="margin-bottom:1rem;line-height:1.6">此遊戲需要在外部瀏覽器開啟<br>（Safari 或 Chrome）</p>
+              <p style="font-size:0.85rem;color:#94a3b8;margin-bottom:1.5rem">請點右下角選單 → 「在瀏覽器中開啟」</p>
+              <div style="font-size:2rem">📋</div>
+              <p style="font-size:0.8rem;color:#94a3b8;margin-top:0.5rem">或複製網址後貼到瀏覽器</p>
+            </div>
+          </div>`;
+      }
+    })();
+
     const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
     let ws;
 

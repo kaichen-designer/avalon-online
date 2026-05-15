@@ -190,9 +190,7 @@ function renderByPhase(state) {
     case 'ROLE_REVEAL':
       renderPlayerChips(state.players, state.leader, state.team, myId);
       phaseEl().innerHTML = `<div class="waiting-msg">查看你的角色卡，點擊確認後繼續…</div>`;
-      if (!document.getElementById('role-section') || document.getElementById('role-section').style.display === 'none') {
-        if (window.myRoleInfo) renderRoleReveal(window.myRoleInfo, state.players);
-      }
+      if (window.myRoleInfo) renderRoleReveal(window.myRoleInfo, state.players);
       break;
     case 'TEAM_PROPOSAL':
       renderPlayerChips(state.players, state.leader, state.team, myId);
