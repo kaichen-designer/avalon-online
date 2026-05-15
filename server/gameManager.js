@@ -40,7 +40,7 @@ function getLobbyState(room) {
   return {
     type: 'LOBBY_STATE',
     roomCode: room.code,
-    players: room.players.filter(p => p.isConnected !== false).map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId })),
+    players: room.players.filter(p => p.isConnected !== false).map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isConnected: true })),
     hostId: room.hostId,
   };
 }
