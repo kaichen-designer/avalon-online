@@ -40,7 +40,7 @@ function getLobbyState(room) {
   return {
     type: 'LOBBY_STATE',
     roomCode: room.code,
-    players: room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId })),
+    players: room.players.filter(p => p.isConnected !== false).map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId })),
     hostId: room.hostId,
   };
 }
@@ -125,15 +125,21 @@ function handleDisconnect(ws) {
   if (!player) return;
 
   if (room.phase === 'LOBBY') {
-    room.players = room.players.filter(p => p.id !== playerId);
-    if (room.players.length === 0) {
-      rooms.delete(roomCode);
-      return;
-    }
-    // Transfer host if needed
-    if (room.hostId === playerId && room.players.length > 0) {
-      room.hostId = room.players[0].id;
-    }
+    player.isConnected = false;
+    player.ws = null;
+
+    player.disconnectTimer = setTimeout(() => {
+      room.players = room.players.filter(p => p.id !== playerId);
+      if (room.players.length === 0) {
+        rooms.delete(roomCode);
+        return;
+      }
+      if (room.hostId === playerId) {
+        room.hostId = room.players[0].id;
+      }
+      broadcast(room, getLobbyState(room));
+    }, 30000);
+
     broadcast(room, getLobbyState(room));
   } else {
     player.isConnected = false;
