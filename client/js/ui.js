@@ -174,6 +174,7 @@ function renderRoleReveal(roleInfo, players) {
   document.getElementById('acknowledge-btn').onclick = () => {
     document.getElementById('role-section').style.display = 'none';
     document.getElementById('phase-section').style.display = 'block';
+    phaseEl().innerHTML = `<div class="waiting-msg">已確認角色，等待所有玩家確認後遊戲開始…</div>`;
     window.sendMsg({ type: 'ACKNOWLEDGE_ROLE' });
   };
 }
@@ -189,7 +190,7 @@ function renderByPhase(state) {
       break;
     case 'ROLE_REVEAL':
       renderPlayerChips(state.players, state.leader, state.team, myId);
-      phaseEl().innerHTML = `<div class="waiting-msg">查看你的角色卡，點擊確認後繼續…</div>`;
+      phaseEl().innerHTML = `<div class="waiting-msg">請查看角色卡並按下確認按鈕</div>`;
       if (window.myRoleInfo) renderRoleReveal(window.myRoleInfo, state.players);
       break;
     case 'TEAM_PROPOSAL':
