@@ -89,6 +89,14 @@ function dispatch(msg) {
     }
 
     case 'ERROR':
+      if (msg.code === 'ROOM_NOT_FOUND' || msg.code === 'PLAYER_NOT_FOUND') {
+        sessionStorage.removeItem('roomCode');
+        sessionStorage.removeItem('playerId');
+        sessionStorage.removeItem('isHost');
+        alert('房間已不存在（伺服器可能重新啟動），請重新建立房間。');
+        window.location.href = 'index.html';
+        return;
+      }
       showNotification(errorMsg(msg.code), true);
       break;
 
