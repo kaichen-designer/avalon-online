@@ -40,7 +40,11 @@ const server = http.createServer((req, res) => {
       }
       return;
     }
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    const isHtml = ext === '.html';
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': isHtml ? 'no-cache' : 'public, max-age=3600',
+    });
     res.end(data);
   });
 });
