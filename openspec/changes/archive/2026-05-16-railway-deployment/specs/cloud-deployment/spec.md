@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+<!-- Synced to openspec/specs/cloud-deployment/spec.md -->
+
 ### Requirement: WebSocket connection uses protocol matching the page origin
 
 The client SHALL construct the WebSocket URL using `wss://` when the page is served over HTTPS and `ws://` when served over HTTP. The URL host SHALL be derived from `location.host` to automatically match whatever domain or IP address the player used to access the page.
