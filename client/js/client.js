@@ -88,6 +88,14 @@ function dispatch(msg) {
       break;
     }
 
+    case 'KICKED':
+      sessionStorage.removeItem('playerId');
+      sessionStorage.removeItem('roomCode');
+      sessionStorage.removeItem('isHost');
+      alert('你已被房主踢出');
+      window.location.href = 'index.html';
+      break;
+
     case 'ERROR':
       if (msg.code === 'ROOM_NOT_FOUND' || msg.code === 'PLAYER_NOT_FOUND') {
         sessionStorage.removeItem('roomCode');

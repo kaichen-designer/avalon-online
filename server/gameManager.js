@@ -67,6 +67,7 @@ function createRoom(ws, playerName) {
     ladyEnabled: false,
     ladyHolder: null,
     previousLadyHolders: [],
+    dealingMode: false,
   };
 
   rooms.set(roomCode, room);
@@ -158,4 +159,19 @@ function handleDisconnect(ws) {
   }
 }
 
-module.exports = { rooms, wsToPlayer, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, broadcast, sendTo, getLobbyState };
+function kickPlayer(room, targetId) {
+  const target = room.players.find(p => p.id === targetId);
+  if (!target) return false;
+
+  // Notify the kicked player before removing
+  sendTo(target.ws, { type: 'KICKED' });
+
+  // Remove player from room
+  room.players = room.players.filter(p => p.id !== targetId);
+
+  // Broadcast updated lobby state to remaining players
+  broadcast(room, getLobbyState(room));
+  return true;
+}
+
+module.exports = { rooms, wsToPlayer, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, broadcast, sendTo, getLobbyState };

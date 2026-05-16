@@ -40,6 +40,7 @@ function broadcastGameState(room) {
     players: room.players.map(p => ({ id: p.id, name: p.name, isConnected: p.isConnected })),
     ...(room.phase === 'GAME_OVER' ? { merlinWas: merlinId } : {}),
     ...(room.ladyEnabled ? { ladyHolder: room.ladyHolder, previousLadyHolders: room.previousLadyHolders } : {}),
+    dealingMode: !!room.dealingMode,
   });
 }
 
@@ -78,6 +79,8 @@ function assignRoles(room, roleList, sendToFn) {
 }
 
 function acknowledgeRole(room, playerId) {
+  // In dealing mode, role reveal is permanent — do not advance to TEAM_PROPOSAL
+  if (room.dealingMode) return;
   if (!room.acknowledged) room.acknowledged = new Set();
   room.acknowledged.add(playerId);
   if (room.acknowledged.size >= room.players.length) {

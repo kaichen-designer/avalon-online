@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 
-const { rooms, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, sendTo, getLobbyState, broadcast } = require('./gameManager');
+const { rooms, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, sendTo, getLobbyState, broadcast } = require('./gameManager');
 const { assignRoles, acknowledgeRole, proposeTeam, submitVote, submitMissionCard, assassinate, investigateWithLady, broadcastGameState } = require('./gameEngine');
 const { ROLES, getVisibleInfo } = require('./roles');
 
@@ -134,6 +134,7 @@ wss.on('connection', ws => {
           sendTo(ws, { type: 'ERROR', code: 'MISSING_ROLE_LIST' }); break;
         }
         room.ladyEnabled = !!msg.ladyEnabled;
+        room.dealingMode = !!msg.dealingMode;
         const ok = assignRoles(room, msg.roleList, sendTo);
         if (!ok) {
           room.ladyEnabled = false;
@@ -173,6 +174,15 @@ wss.on('connection', ws => {
           sendTo(ws, { type: 'ERROR', code: 'INVALID_CARD' }); break;
         }
         submitMissionCard(room, playerId, msg.card, sendTo);
+        break;
+      }
+
+      case 'KICK_PLAYER': {
+        if (!room || !playerId) { sendTo(ws, { type: 'ERROR', code: 'NOT_IN_ROOM' }); break; }
+        if (room.hostId !== playerId) { sendTo(ws, { type: 'ERROR', code: 'NOT_HOST' }); break; }
+        if (room.phase !== 'LOBBY') { sendTo(ws, { type: 'ERROR', code: 'NOT_IN_LOBBY' }); break; }
+        if (!msg.targetId) { sendTo(ws, { type: 'ERROR', code: 'MISSING_FIELDS' }); break; }
+        kickPlayer(room, msg.targetId);
         break;
       }
 

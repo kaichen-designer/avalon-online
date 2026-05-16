@@ -40,8 +40,8 @@ function renderLobby(state) {
   const myId = window.myId;
   const isHost = sessionStorage.getItem('isHost') === '1' || state.hostId === myId;
 
-  // Show players section
-  renderPlayerChips(state.players, null, null, myId);
+  // Show players section (with kick buttons for host)
+  renderPlayerChips(state.players, null, null, myId, isHost);
 
   let html = `
     <div class="lobby-room-code">${state.roomCode}</div>
@@ -75,6 +75,7 @@ function renderLobby(state) {
     html += `</div>`;
     html += `<div id="role-error" class="status-msg error" style="display:none"></div>`;
     html += `<div class="lady-toggle-row"><label><input type="checkbox" id="lady-toggle"> 啟用湖中女（可選）</label></div>`;
+    html += `<div class="lady-toggle-row"><label><input type="checkbox" id="deal-mode-toggle"> 發牌模式（面對面抽角色用）</label></div>`;
     html += `<button class="btn btn-primary" id="start-btn">開始遊戲</button>`;
     html += `</div>`;
   } else {
@@ -105,7 +106,8 @@ function renderLobby(state) {
       }
       errEl.style.display = 'none';
       const ladyEnabled = document.getElementById('lady-toggle')?.checked || false;
-      window.sendMsg({ type: 'START_GAME', roleList, ladyEnabled });
+      const dealingMode = document.getElementById('deal-mode-toggle')?.checked || false;
+      window.sendMsg({ type: 'START_GAME', roleList, ladyEnabled, dealingMode });
     });
   }
 }
@@ -179,6 +181,66 @@ function renderRoleReveal(roleInfo, players) {
   };
 }
 
+// ── renderCardFlip (dealing mode) ────────────────────────────
+function renderCardFlip(roleInfo, players) {
+  if (!roleInfo) {
+    phaseEl().innerHTML = `<div class="waiting-msg">等待角色分配…</div>`;
+    return;
+  }
+
+  const { role, knownEvil, suspects } = roleInfo;
+  const side = ROLE_SIDE[role] || 'good';
+  const roleName = ROLE_NAMES[role] || role;
+  const roleDesc = ROLE_DESC[role] || '';
+
+  // Build faction info string (same logic as renderRoleReveal)
+  let factionHtml = '';
+  if (knownEvil && knownEvil.length > 0) {
+    const names = knownEvil.map(id => {
+      const p = (players || []).find(x => x.id === id);
+      return p ? p.name : id;
+    });
+    factionHtml = `<div class="role-known">你知道的壞人：<strong>${names.join('、')}</strong></div>`;
+  } else if (suspects && suspects.length > 0) {
+    const names = suspects.map(id => {
+      const p = (players || []).find(x => x.id === id);
+      return p ? p.name : id;
+    });
+    factionHtml = `<div class="role-known">梅林或莫甘娜（分不清）：<strong>${names.join('、')}</strong></div>`;
+  }
+
+  phaseEl().innerHTML = `
+    <div class="card-flip-container" id="card-flip-container">
+      <div class="card-flip-back" id="card-flip-back">
+        <div class="card-flip-icon">⚔</div>
+        <div class="card-flip-hint">點擊查看你的角色</div>
+      </div>
+      <div class="card-flip-front role-card ${side}" id="card-flip-front" style="display:none">
+        <div class="role-name ${side}">${roleName}</div>
+        <div class="role-desc">${roleDesc}</div>
+        ${factionHtml}
+        <div class="card-flip-hint" style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-muted)">點擊蓋牌</div>
+      </div>
+    </div>
+    <div class="waiting-msg" style="margin-top:0.75rem">發牌模式：查看完請蓋牌，讓其他人查看</div>
+  `;
+
+  const container = document.getElementById('card-flip-container');
+  const back = document.getElementById('card-flip-back');
+  const front = document.getElementById('card-flip-front');
+
+  container.addEventListener('click', () => {
+    const isRevealed = front.style.display !== 'none';
+    if (isRevealed) {
+      front.style.display = 'none';
+      back.style.display = 'flex';
+    } else {
+      back.style.display = 'none';
+      front.style.display = 'block';
+    }
+  });
+}
+
 // ── renderByPhase (dispatcher) ────────────────────────────────
 function renderByPhase(state) {
   const myId = window.myId;
@@ -190,8 +252,15 @@ function renderByPhase(state) {
       break;
     case 'ROLE_REVEAL':
       renderPlayerChips(state.players, state.leader, state.team, myId);
-      phaseEl().innerHTML = `<div class="waiting-msg">請查看角色卡並按下確認按鈕</div>`;
-      if (window.myRoleInfo) renderRoleReveal(window.myRoleInfo, state.players);
+      if (state.dealingMode) {
+        // Dealing mode: show flippable card, no acknowledge button
+        document.getElementById('role-section').style.display = 'none';
+        document.getElementById('phase-section').style.display = 'block';
+        renderCardFlip(window.myRoleInfo, state.players);
+      } else {
+        phaseEl().innerHTML = `<div class="waiting-msg">請查看角色卡並按下確認按鈕</div>`;
+        if (window.myRoleInfo) renderRoleReveal(window.myRoleInfo, state.players);
+      }
       break;
     case 'TEAM_PROPOSAL':
       renderPlayerChips(state.players, state.leader, state.team, myId);
@@ -490,7 +559,7 @@ function renderGameOver(result) {
 }
 
 // ── renderPlayerChips (shared) ────────────────────────────────
-function renderPlayerChips(players, leaderId, team, myId) {
+function renderPlayerChips(players, leaderId, team, myId, kickable) {
   const container = document.getElementById('players-list');
   if (!container) return;
   container.innerHTML = '';
@@ -502,7 +571,23 @@ function renderPlayerChips(players, leaderId, team, myId) {
     if (team && team.includes(p.id)) cls += ' on-team';
     if (!p.isConnected) cls += ' disconnected';
     chip.className = cls;
-    chip.textContent = p.name + (p.id === leaderId ? ' 👑' : '') + (!p.isConnected ? ' (離線)' : '');
+    chip.dataset.id = p.id;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = p.name + (p.id === leaderId ? ' 👑' : '') + (!p.isConnected ? ' (離線)' : '');
+    chip.appendChild(nameSpan);
+
+    if (kickable && p.id !== myId) {
+      const kickBtn = document.createElement('button');
+      kickBtn.className = 'btn-kick';
+      kickBtn.textContent = '踢出';
+      kickBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        window.sendMsg({ type: 'KICK_PLAYER', targetId: p.id });
+      });
+      chip.appendChild(kickBtn);
+    }
+
     container.appendChild(chip);
   });
 }
@@ -511,6 +596,7 @@ function renderPlayerChips(players, leaderId, team, myId) {
 window.UI = {
   renderLobby,
   renderRoleReveal,
+  renderCardFlip,
   renderByPhase,
   renderTeamProposal,
   renderVote,
