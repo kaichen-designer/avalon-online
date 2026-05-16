@@ -82,7 +82,13 @@ function renderLobby(state) {
     html += `<div class="waiting-msg">等待房主開始遊戲…</div>`;
   }
 
+  html += `<button class="btn btn-danger" id="leave-btn" style="margin-top:0.75rem">退出房間</button>`;
+
   phaseEl().innerHTML = html;
+
+  document.getElementById('leave-btn').addEventListener('click', () => {
+    window.sendMsg({ type: 'LEAVE_ROOM' });
+  });
 
   if (isHost) {
     const toggles = document.querySelectorAll('.role-toggle');

@@ -96,6 +96,13 @@ function dispatch(msg) {
       window.location.href = 'index.html';
       break;
 
+    case 'LEFT':
+      sessionStorage.removeItem('playerId');
+      sessionStorage.removeItem('roomCode');
+      sessionStorage.removeItem('isHost');
+      window.location.href = 'index.html';
+      break;
+
     case 'ERROR':
       if (msg.code === 'ROOM_NOT_FOUND' || msg.code === 'PLAYER_NOT_FOUND') {
         sessionStorage.removeItem('roomCode');

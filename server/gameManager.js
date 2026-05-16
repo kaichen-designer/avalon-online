@@ -174,4 +174,35 @@ function kickPlayer(room, targetId) {
   return true;
 }
 
-module.exports = { rooms, wsToPlayer, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, broadcast, sendTo, getLobbyState };
+function leaveRoom(room, playerId) {
+  const player = room.players.find(p => p.id === playerId);
+  if (!player) return false;
+
+  // Clear any pending disconnect timer
+  if (player.disconnectTimer) {
+    clearTimeout(player.disconnectTimer);
+  }
+
+  // Notify the leaving player
+  sendTo(player.ws, { type: 'LEFT' });
+
+  // Remove player from room
+  room.players = room.players.filter(p => p.id !== playerId);
+
+  // If room is now empty, delete it
+  if (room.players.length === 0) {
+    rooms.delete(room.code);
+    return true;
+  }
+
+  // Transfer host if the leaving player was the host
+  if (room.hostId === playerId) {
+    room.hostId = room.players[0].id;
+  }
+
+  // Broadcast updated lobby state to remaining players
+  broadcast(room, getLobbyState(room));
+  return true;
+}
+
+module.exports = { rooms, wsToPlayer, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, leaveRoom, broadcast, sendTo, getLobbyState };

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 
-const { rooms, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, sendTo, getLobbyState, broadcast } = require('./gameManager');
+const { rooms, createRoom, joinRoom, getRoomByPlayerId, getPlayer, handleDisconnect, kickPlayer, leaveRoom, sendTo, getLobbyState, broadcast } = require('./gameManager');
 const { assignRoles, acknowledgeRole, proposeTeam, submitVote, submitMissionCard, assassinate, investigateWithLady, broadcastGameState } = require('./gameEngine');
 const { ROLES, getVisibleInfo } = require('./roles');
 
@@ -183,6 +183,13 @@ wss.on('connection', ws => {
         if (room.phase !== 'LOBBY') { sendTo(ws, { type: 'ERROR', code: 'NOT_IN_LOBBY' }); break; }
         if (!msg.targetId) { sendTo(ws, { type: 'ERROR', code: 'MISSING_FIELDS' }); break; }
         kickPlayer(room, msg.targetId);
+        break;
+      }
+
+      case 'LEAVE_ROOM': {
+        if (!room || !playerId) { sendTo(ws, { type: 'ERROR', code: 'NOT_IN_ROOM' }); break; }
+        if (room.phase !== 'LOBBY') { sendTo(ws, { type: 'ERROR', code: 'NOT_IN_LOBBY' }); break; }
+        leaveRoom(room, playerId);
         break;
       }
 
